@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
 import Header from "../components/Header";
-// import Hero from "@/components/Hero";
-// import Features from "@/components/Features";
+import { Link } from "react-router-dom";
 import Footer from "../components/Footer";
 import Card from "../components/card";
 import Media from "../utilis/media";
@@ -56,10 +55,7 @@ const SplashPage = () => {
   return (
     <div className="min-h-screen w-full overflow-hidden">
       <Header />
-      {/* <Hero />
-      <Features /> */}
-       
-      {/* Discover Section */}
+     
       <section id="discover" className="py-24 px-6 relative overflow-hidden bg-[#1d232a]">
       
         <div className="relative w-full h-screen overflow-hidden rounded-lg">

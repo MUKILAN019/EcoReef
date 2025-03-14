@@ -1,17 +1,20 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import emailjs from "@emailjs/browser";
-import Card  from "../components/card";
+import Card from "../components/card";
 import { Trash, Mail, AlertCircle } from "lucide-react";
 
 const Store = () => {
   const [reefs, setReefs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const token = localStorage.getItem("token");
 
   useEffect(() => {
     const fetchReefs = async () => {
       try {
-        const response = await axios.get("/api/get_images/");
+        const response = await axios.get("http://127.0.0.1:8000/api/get_your_images/", {
+          headers: { Authorization: `Bearer ${token}` }, 
+        });
         setReefs(response.data.coral_images || []);
       } catch (error) {
         console.error("Error fetching reef data:", error);
@@ -20,12 +23,19 @@ const Store = () => {
         setLoading(false);
       }
     };
-    fetchReefs();
-  }, []);
+
+    if (token) {
+      fetchReefs();
+    } else {
+      console.error("No token found. User must log in.");
+    }
+  }, [token]);
 
   const handleDelete = async (reefId) => {
     try {
-      await axios.delete(`/api/delete_reef/${reefId}/`);
+      await axios.delete(`http://127.0.0.1:8000/api/delete_reef/${reefId}/`, {
+        headers: { Authorization: `Bearer ${token}` }, // Attach JWT token
+      });
       setReefs(reefs.filter((reef) => reef.id !== reefId));
       alert("Reef deleted successfully!");
     } catch (error) {
@@ -35,32 +45,34 @@ const Store = () => {
   };
 
   const sendEmail = (reef, isEmergency = false) => {
+    const SERVICE_ID = "service_55mq946";  
+    const TEMPLATE_ID = "template_ke1g875";  
+    const PUBLIC_KEY = "ZrIsx2_J9gdADTMyX";  
+
     const templateParams = {
-      user_email: "admin@example.com",
+      user_email: "mukilan.p@kalvium.community",
       reef_status: reef.status,
       reef_location: `${reef.latitude}, ${reef.longitude}`,
-      reef_image: reef.image_url,
-      emergency: isEmergency ? "Urgent! This reef is in critical condition!" : "",
+      emergency: isEmergency ? "🚨 Urgent! This reef is in critical condition! 🚨" : "No emergency reported.",
     };
 
-    emailjs
-      .send("service_xxxxx", "template_xxxxx", templateParams, "YOUR_PUBLIC_KEY")
+    emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams, PUBLIC_KEY)  
       .then(
-        () => alert(isEmergency ? "Emergency alert sent!" : "Email sent successfully!"),
-        (error) => console.error("Email send error:", error)
+        () => alert(isEmergency ? "🚨 Emergency alert sent!" : "📩 Email sent successfully!"),
+        (error) => console.error("❌ Email send error:", error)
       );
   };
 
   return (
     <div className="max-w-5xl mx-auto p-6 bg-white shadow-lg rounded-lg w-full">
-      <h2 className="text-2xl font-bold text-center mb-6">Coral Reef Store</h2>
+      <h2 className="text-2xl font-bold text-center mb-6">Your Coral Reefs</h2>
 
       {loading ? (
-        <p className="text-center text-gray-500">Loading reefs...</p>
+        <p className="text-center text-gray-500">Loading your reefs...</p>
       ) : reefs.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {reefs.map((reef) => (
-            <Card key={reef.id} className="p-5 shadow-md bg-gray-100">
+            <Card key={reef.id} className="p-5 shadow-md bg-blue-300">
               <div className="relative h-48 overflow-hidden rounded-md">
                 <img
                   src={reef.image_url}

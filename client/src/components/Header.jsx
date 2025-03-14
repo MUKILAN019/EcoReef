@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { twMerge } from "tailwind-merge";
-
+import { Link } from "react-router-dom";
 
 export function cn(...classes) {
   return twMerge(classes.filter(Boolean).join(" "));
@@ -8,6 +8,7 @@ export function cn(...classes) {
 
 const Header = () => {
   const [scrolled, setScrolled] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -16,6 +17,12 @@ const Header = () => {
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (localStorage.getItem("token")) {
+      setIsAuthenticated(true);
+    }
   }, []);
 
   return (
@@ -34,18 +41,29 @@ const Header = () => {
             <span className="text-lg font-medium text-blue-700">EcoReef</span>
           </a>
           <div className="flex items-center gap-8">
-          {/* Navigation */}
-          <button className="btn btn-info">Login</button>
-
-          {/* CTA Button */}
-          <div className="flex items-center gap-4">
-            <a
-              href="#contact"
-              className="bg-blue-600 text-white px-5 py-2 rounded-full text-sm font-semibold shadow-md transition hover:bg-blue-700"
-            >
-              Get Started
-            </a>
-          </div>
+            {/* Navigation */}
+            {isAuthenticated ? (
+              <>
+                <Link to="/create">
+                  <button className="btn btn-success">Create</button>
+                </Link>
+                <Link to="/store">
+                  <button className="btn btn-primary">Store</button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/login">
+                  <button className="btn btn-info">Login</button>
+                </Link>
+                <a
+                  href="/signup"
+                  className="bg-blue-600 text-white px-5 py-2 rounded-full text-sm font-semibold shadow-md transition hover:bg-blue-700"
+                >
+                  Get Started
+                </a>
+              </>
+            )}
           </div>
         </div>
       </div>

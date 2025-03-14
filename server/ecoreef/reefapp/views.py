@@ -1,18 +1,23 @@
 import requests
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view ,permission_classes
+from rest_framework import permissions
+from .serializers import UserSerializer
 from .models import CoralImage
 from django.contrib.auth.models import User
-from .opencv_analysis import analyze_image  # Import OpenCV analysis function
+from .opencv_analysis import analyze_image  
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import authenticate
+from rest_framework.permissions import IsAuthenticated
 
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])  # Requires JWT authentication
 def upload_image(request):
     """API to upload coral images and analyze them using OpenCV"""
     try:
-        user_id = request.data.get("user_id")
-        user = get_object_or_404(User, id=user_id)  # Safer user fetching
+        user = request.user  # Extract user from JWT token
 
         image = request.FILES.get("image")
         latitude = request.data.get("latitude")
@@ -42,6 +47,7 @@ def upload_image(request):
     except Exception as e:
         return Response({"error": str(e)}, status=500)
 
+
 @api_view(["GET"])
 def get_images(request):
     """API to fetch all coral images"""
@@ -61,6 +67,34 @@ def get_images(request):
     ]
 
     return Response({"coral_images": image_list}, status=200)
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_your_images(request):
+    """API to fetch coral images uploaded by the logged-in user."""
+    
+    # Get user from the JWT token
+    user = request.user  
+
+    # Fetch only the images uploaded by the logged-in user
+    images = CoralImage.objects.filter(user=user)
+
+    image_list = [
+        {
+            "id": str(image.id),
+            "user": image.user.username,
+            "latitude": image.latitude,
+            "longitude": image.longitude,
+            "status": image.status,
+            "uploaded_at": image.uploaded_at,
+            "image_url": request.build_absolute_uri(image.image_url())
+        }
+        for image in images
+    ]
+
+    return Response({"coral_images": image_list}, status=200)
+
+
 
 @api_view(["GET"])
 def get_news(request):
@@ -96,3 +130,42 @@ def delete_reef(request, reef_id):
     reef.delete()
     
     return Response({"message": "Reef deleted successfully!"}, status=200)
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny]) 
+def register_user(request):
+    """Registers a new user."""
+    serializer = UserSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({"message": "User created successfully"}, status=201)
+    return Response(serializer.errors, status=400)
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def login_user(request):
+    """Logs in a user using email and password and returns JWT tokens."""
+    email = request.data.get('email')
+    password = request.data.get('password')
+
+    if not email or not password:
+        return Response({"error": "Email and password are required"}, status=400)
+
+    
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response({"error": "Invalid email or password"}, status=401)
+
+    
+    user = authenticate(username=user.username, password=password)
+    
+    if user is not None:
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            "message": "Login successful!",
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+        })
+    
+    return Response({"error": "Invalid email or password"}, status=401)

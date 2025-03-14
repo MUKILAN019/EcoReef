@@ -3,27 +3,19 @@ import axios from "axios";
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet";
 import L from "leaflet";  
 import "leaflet/dist/leaflet.css";
-
-
+import { jwtDecode } from "jwt-decode"; // Correct import
 
 const getCoralIcon = (status) => {
-    let color;
-    if (status === "Healthy") color = "green";
-    else if (status === "Partially Bleached") color = "orange";
-    else color = "red";
-  
-    return L.divIcon({  
-      className: "custom-marker",
-      html: `<div style="
-        width: 12px;
-        height: 12px;
-        background-color: ${color};
-        border-radius: 50%;
-        box-shadow: 0 0 5px ${color};
-        "></div>`,
-    });
-  };
-  
+  let color;
+  if (status === "Healthy") color = "green";
+  else if (status === "Partially Bleached") color = "orange";
+  else color = "red";
+
+  return L.divIcon({  
+    className: "custom-marker",
+    html: `<div style="width: 12px; height: 12px; background-color: ${color}; border-radius: 50%; box-shadow: 0 0 5px ${color};"></div>`,
+  });
+};
 
 // Click handler for setting location
 const ClickToSetMarker = ({ setLatitude, setLongitude, setMarkerPosition }) => {
@@ -71,7 +63,7 @@ const Create = () => {
   // Search location function
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
-    const apiKey = "fc871a3692cb49fc939aa7c573eed86a"; // Free API key from OpenCageData
+    const apiKey = "fc871a3692cb49fc939aa7c573eed86a";
     const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(searchQuery)}&key=${apiKey}`;
 
     try {
@@ -100,16 +92,24 @@ const Create = () => {
       return;
     }
 
+    // Get token from local storage
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("User is not authenticated.");
+      return;
+    }
+
     const formData = new FormData();
     formData.append("image", file);
     formData.append("latitude", latitude);
     formData.append("longitude", longitude);
-    formData.append("user_id", 1);
 
     try {
-      const res = await axios.post("http://127.0.0.1:8000/api/upload_image/", formData);
+      const res = await axios.post("http://127.0.0.1:8000/api/upload_image/", formData, {
+        headers: { Authorization: `Bearer ${token}` }, // Attach JWT token
+      });
       alert("Upload Successful: " + res.data.status);
-      setCoralData([...coralData, res.data]); // Add new coral data to list
+      setCoralData([...coralData, res.data]);
     } catch (error) {
       console.error("Upload error:", error);
       alert("Failed to upload image. Try again.");
@@ -118,93 +118,70 @@ const Create = () => {
 
   return (
     <div className="bg-[#1d232a]">
-    <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg w-full">
-      <h2 className="text-2xl font-bold text-center mb-4">Coral Reef Health Tracker</h2>
+      <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg w-full">
+        <h2 className="text-2xl font-bold text-center mb-4">Coral Reef Health Tracker</h2>
 
-      {/* Search Bar */}
-      <div className="flex gap-2 mb-4">
-        <input
-          type="text"
-          placeholder="Search a place..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full p-2 border rounded-md"
-        />
-        <button onClick={handleSearch} className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
-          Search
-        </button>
-      </div>
-
-      {/* File Upload Form */}
-      <form onSubmit={handleUpload} className="bg-gray-100 p-4 rounded-lg shadow-md mb-4">
-        <div className="mb-2">
-          <label className="font-semibold">Upload Coral Image:</label>
-          <input type="file" onChange={(e) => setFile(e.target.files[0])} required className="block w-full border border-gray-400 rounded-xl px-2 py-2 h-10 pl-2"/>
+        {/* Search Bar */}
+        <div className="flex gap-2 mb-4">
+          <input
+            type="text"
+            placeholder="Search a place..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full p-2 border rounded-md"
+          />
+          <button onClick={handleSearch} className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
+            Search
+          </button>
         </div>
 
-        <div className="flex gap-2">
-          <input
-            type="number"
-            placeholder="Latitude"
-            value={latitude}
-            onChange={(e) => setLatitude(e.target.value)}
-            required
-            className="w-1/2 p-2 border rounded-md"
-          />
-          <input
-            type="number"
-            placeholder="Longitude"
-            value={longitude}
-            onChange={(e) => setLongitude(e.target.value)}
-            required
-            className="w-1/2 p-2 border rounded-md"
-          />
-        </div>
+        {/* File Upload Form */}
+        <form onSubmit={handleUpload} className="bg-gray-100 p-4 rounded-lg shadow-md mb-4">
+          <div className="mb-2">
+            <label className="font-semibold">Upload Coral Image:</label>
+            <input type="file" onChange={(e) => setFile(e.target.files[0])} required className="block w-full border border-gray-400 rounded-xl px-2 py-2 h-10 pl-2"/>
+          </div>
 
-        <button type="submit" className="mt-3 w-full bg-green-500 text-white py-2 rounded-md hover:bg-green-600">
-          Upload Reef Data
-        </button>
-      </form>
+          <div className="flex gap-2">
+            <input
+              type="number"
+              placeholder="Latitude"
+              value={latitude}
+              onChange={(e) => setLatitude(e.target.value)}
+              required
+              className="w-1/2 p-2 border rounded-md"
+            />
+            <input
+              type="number"
+              placeholder="Longitude"
+              value={longitude}
+              onChange={(e) => setLongitude(e.target.value)}
+              required
+              className="w-1/2 p-2 border rounded-md"
+            />
+          </div>
 
-      {/* Leaflet Map */}
-      <div className="rounded-lg overflow-hidden shadow-md">
+          <button type="submit" className="mt-3 w-full bg-green-500 text-white py-2 rounded-md hover:bg-green-600">
+            Upload Reef Data
+          </button>
+        </form>
+
+        {/* Leaflet Map */}
         <MapContainer center={[0, 0]} zoom={2} style={{ height: "500px", width: "100%" }} whenCreated={setMap}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <ClickToSetMarker setLatitude={setLatitude} setLongitude={setLongitude} setMarkerPosition={setMarkerPosition} />
 
-          {/* User's Selected Location */}
-          {markerPosition && (
-            <Marker position={markerPosition}>
+          {/* Coral Data Markers */}
+          {coralData.map((coral, idx) => (
+            <Marker key={idx} position={[coral.latitude, coral.longitude]} icon={getCoralIcon(coral.status)}>
               <Popup>
-                <p><strong>Selected Location</strong></p>
-                <p>Latitude: {latitude}</p>
-                <p>Longitude: {longitude}</p>
+                <p><strong>Status:</strong> {coral.status}</p>
+                <img src={coral.image_url} alt="Coral" className="w-32 h-20 object-cover mt-2 rounded-md" />
               </Popup>
             </Marker>
-          )}
-
-          {/* Coral Data from API */}
-          {loading ? (
-            <p className="text-center text-gray-500 mt-2">Loading coral data...</p>
-          ) : coralData.length > 0 ? (
-            coralData.map((coral, idx) => (
-              <Marker
-                key={idx}
-                position={[coral.latitude, coral.longitude]}
-                icon={getCoralIcon(coral.status)}
-              >
-                <Popup>
-                  <p><strong>Status:</strong> {coral.status}</p>
-                  <img src={coral.image_url} alt="Coral" className="w-32 h-20 object-cover mt-2 rounded-md" />
-                </Popup>
-              </Marker>
-            ))
-          ) : (
-            <p className="text-center text-gray-500 mt-2">No coral data available.</p>
-          )}
+          ))}
         </MapContainer>
       </div>
-    </div>
     </div>
   );
 };
