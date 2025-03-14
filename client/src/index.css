@@ -1,0 +1,83 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Root Variables */
+@layer base {
+  :root {
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 214 32% 91%;
+    --foreground: 222.2 47.4% 11.2%; /* Dark Gray */
+    --radius: 0.5rem;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 47.4% 11.2%;
+  }
+
+  body {
+    @apply font-sans text-gray-900;
+  }
+}
+
+/* Fixing text-foreground issue */
+.text-foreground {
+  color: hsl(var(--foreground, 222.2, 47.4%, 11.2%)); /* Fallback: dark gray */
+}
+
+.bg-foreground {
+  background-color: hsl(var(--foreground, 222.2, 47.4%, 11.2%));
+}
+
+/* Custom Colors */
+@layer components {
+  .text-coral-500 { color: #14b8a6; }
+  .text-ocean-500 { color: #0ea5e9; }
+  .text-sunset-500 { color: #f97316; }
+
+  .bg-coral-500 { background-color: #14b8a6; }
+  .bg-ocean-500 { background-color: #0ea5e9; }
+  .bg-sunset-500 { background-color: #f97316; }
+
+  .border-coral-500 { border-color: #14b8a6; }
+  .border-ocean-500 { border-color: #0ea5e9; }
+  .border-sunset-500 { border-color: #f97316; }
+}
+
+/* Button Styles */
+@layer components {
+  .btn-primary {
+    @apply bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-transform;
+  }
+
+  .btn-primary:hover {
+    @apply bg-blue-700 transform scale-105;
+  }
+}
+
+/* Animations */
+@keyframes fade-in-up {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Apply Animations */
+.animate-fade-in-up { animation: fade-in-up 0.8s ease-out; }
+.animate-float { animation: float 6s ease-in-out infinite; }
